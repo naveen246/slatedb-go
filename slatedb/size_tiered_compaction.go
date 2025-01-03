@@ -4,7 +4,9 @@ import (
 	"github.com/slatedb/slatedb-go/internal/assert"
 )
 
-type SizeTieredCompactionScheduler struct{}
+type SizeTieredCompactionScheduler struct {
+	options SizeTieredCompactionSchedulerOptions
+}
 
 func (s SizeTieredCompactionScheduler) maybeScheduleCompaction(state *CompactorState) []Compaction {
 	dbState := state.dbState

@@ -110,7 +110,7 @@ func newCompactionOrchestrator(
 		return nil, err
 	}
 
-	scheduler := loadCompactionScheduler()
+	scheduler := opts.CompactorOptions.CompactionScheduler
 	executor := newCompactorExecutor(opts.CompactorOptions, tableStore)
 
 	o := CompactionOrchestrator{
@@ -131,10 +131,6 @@ func loadState(manifest *FenceableManifest) (*CompactorState, error) {
 		return nil, err
 	}
 	return newCompactorState(dbState.Clone(), nil), nil
-}
-
-func loadCompactionScheduler() CompactionScheduler {
-	return SizeTieredCompactionScheduler{}
 }
 
 func (o *CompactionOrchestrator) spawnLoop(opts DBOptions) {

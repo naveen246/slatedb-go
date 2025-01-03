@@ -128,6 +128,27 @@ func DefaultWriteOptions() WriteOptions {
 	}
 }
 
+type SizeTieredCompactionSchedulerOptions struct {
+	// The minimum number of sources to include together in a single compaction step.
+	MinCompactionSources uint64
+
+	// The maximum number of sources to include together in a single compaction step.
+	MaxCompactionSources uint64
+
+	// The size threshold that the scheduler will use to determine if a sorted run should
+	// be included in a given compaction. A sorted run S will be added to a compaction C if S's
+	// size is less than this value times the min size of the runs currently included in C.
+	IncludeSizeThreshold float32
+}
+
+func DefaultSizeTieredCompactionSchedulerOptions() SizeTieredCompactionSchedulerOptions {
+	return SizeTieredCompactionSchedulerOptions{
+		MinCompactionSources: 4,
+		MaxCompactionSources: 8,
+		IncludeSizeThreshold: 4.0,
+	}
+}
+
 type CompactorOptions struct {
 	// The interval at which the compactor checks for a new manifest and decides
 	// if a compaction must be scheduled
@@ -137,11 +158,26 @@ type CompactorOptions struct {
 	// written to a Sorted Run during a compaction, a new SSTable will be created
 	// in the Sorted Run when this size is exceeded.
 	MaxSSTSize uint64
+
+	// The maximum number of concurrent compactions to execute at once
+	MaxConcurrentCompactions uint64
+
+	// Supplies the compaction scheduler to use to select the compactions that should be
+	// scheduled. Currently, the only provided implementation is SizeTieredCompactionScheduler
+	CompactionScheduler CompactionScheduler
 }
 
 func DefaultCompactorOptions() *CompactorOptions {
 	return &CompactorOptions{
-		PollInterval: 5 * time.Second,
-		MaxSSTSize:   1024 * 1024 * 1024,
+		PollInterval:             5 * time.Second,
+		MaxSSTSize:               1024 * 1024 * 1024,
+		MaxConcurrentCompactions: 4,
+		CompactionScheduler:      DefaultCompactionScheduler(),
+	}
+}
+
+func DefaultCompactionScheduler() CompactionScheduler {
+	return SizeTieredCompactionScheduler{
+		options: DefaultSizeTieredCompactionSchedulerOptions(),
 	}
 }

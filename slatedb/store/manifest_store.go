@@ -189,7 +189,7 @@ func (s *StoredManifest) updateManifest(manifest *manifest.Manifest) error {
 	return nil
 }
 
-// read latest manifest from object store and update StoredManifest with the latest manifest.
+// Refresh read latest manifest from object store and update StoredManifest with the latest manifest.
 func (s *StoredManifest) Refresh() (*state.CoreStateSnapshot, error) {
 	stored, err := s.manifestStore.readLatestManifest()
 	if err != nil {

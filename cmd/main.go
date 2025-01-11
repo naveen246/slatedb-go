@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"github.com/thanos-io/objstore/providers/filesystem"
-	"log"
 	"log/slog"
 	"time"
 
@@ -14,7 +13,7 @@ import (
 func main() {
 	bucket, err := filesystem.NewBucket("/tmp")
 	if err != nil {
-		log.Fatal(err)
+		slog.Error("Failed to create new bucket", "error", err)
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()

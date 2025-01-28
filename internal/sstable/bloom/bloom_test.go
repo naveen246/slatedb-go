@@ -3,9 +3,13 @@ package bloom
 import (
 	"encoding/binary"
 	"fmt"
-	"github.com/slatedb/slatedb-go/slatedb/common"
-	"github.com/stretchr/testify/assert"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+
+	"github.com/slatedb/slatedb-go/internal/compress"
+	"github.com/slatedb/slatedb-go/slatedb/common"
 )
 
 func TestFilterBuilder_Build(t *testing.T) {
@@ -39,8 +43,10 @@ func TestEncodeDecode(t *testing.T) {
 	fb.Add([]byte("test2"))
 	filter := fb.Build()
 
-	encoded := Encode(filter)
-	decoded := Decode(encoded)
+	encoded, err := Encode(filter, compress.CodecNone)
+	require.NoError(t, err)
+	decoded, err := Decode(encoded, compress.CodecNone)
+	require.NoError(t, err)
 
 	assert.Equal(t, filter.NumProbes, decoded.NumProbes)
 	assert.Equal(t, filter.Data, decoded.Data)

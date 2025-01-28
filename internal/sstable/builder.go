@@ -3,8 +3,10 @@ package sstable
 import (
 	"bytes"
 	"encoding/binary"
+
 	"github.com/gammazero/deque"
 	"github.com/samber/mo"
+
 	"github.com/slatedb/slatedb-go/internal/assert"
 	"github.com/slatedb/slatedb-go/internal/compress"
 	"github.com/slatedb/slatedb-go/internal/flatbuf"
@@ -58,6 +60,8 @@ type Table struct {
 // |  +-----------------------------------------+  |
 // |  |  bloom.Filter (if MinFilterKeys met)    |  |
 // |  +-----------------------------------------+  |
+// |  |  Checksum (4 bytes)                     |  |
+// |  +-----------------------------------------+  |
 // |                                               |
 // |  +-----------------------------------------+  |
 // |  |  flatbuf.SsTableIndexT                  |  |
@@ -65,6 +69,8 @@ type Table struct {
 // |  |  - Block Offset (Start of Block)        |  |
 // |  |  - FirstKey of this Block               |  |
 // |  |  ...                                    |  |
+// |  +-----------------------------------------+  |
+// |  |  Checksum of SsTableIndexT (4 bytes)    |  |
 // |  +-----------------------------------------+  |
 // |                                               |
 // |  +-----------------------------------------+  |
@@ -218,24 +224,23 @@ func (b *Builder) Build() (*Table, error) {
 	filterOffset := b.currentLen + uint64(len(buf))
 	if b.numKeys >= b.conf.MinFilterKeys {
 		filter := b.filterBuilder.Build()
-		compressedFilter, err := compress.Encode(bloom.Encode(filter), b.conf.Compression)
+		encodedFilter, err := bloom.Encode(filter, b.conf.Compression)
 		if err != nil {
 			return nil, err
 		}
-		filterLen = len(compressedFilter)
-		buf = append(buf, compressedFilter...)
+		filterLen = len(encodedFilter)
+		buf = append(buf, encodedFilter...)
 		maybeFilter = mo.Some(filter)
 	}
 
 	// Compress and Write the index block
 	sstIndex := flatbuf.SsTableIndexT{BlockMeta: b.blockMetaList}
-	indexBlock := encodeIndex(sstIndex)
-	compressedIndexBlock, err := compress.Encode(indexBlock, b.conf.Compression)
+	encodedIndex, err := encodeIndex(sstIndex, b.conf.Compression)
 	if err != nil {
 		return nil, err
 	}
 	indexOffset := b.currentLen + uint64(len(buf))
-	buf = append(buf, compressedIndexBlock...)
+	buf = append(buf, encodedIndex...)
 
 	metaOffset := b.currentLen + uint64(len(buf))
 	firstKey, _ := b.firstKey.Get()
@@ -244,7 +249,7 @@ func (b *Builder) Build() (*Table, error) {
 	sstInfo := &Info{
 		FirstKey:         bytes.Clone(firstKey),
 		IndexOffset:      indexOffset,
-		IndexLen:         uint64(len(compressedIndexBlock)),
+		IndexLen:         uint64(len(encodedIndex)),
 		FilterOffset:     filterOffset,
 		FilterLen:        uint64(filterLen),
 		CompressionCodec: b.conf.Compression,

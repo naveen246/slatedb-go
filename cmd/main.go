@@ -3,9 +3,10 @@ package main
 import (
 	"context"
 	"fmt"
-	"github.com/thanos-io/objstore/providers/filesystem"
 	"log/slog"
 	"time"
+
+	"github.com/thanos-io/objstore/providers/filesystem"
 
 	"github.com/slatedb/slatedb-go/slatedb"
 )
@@ -14,7 +15,9 @@ func main() {
 	bucket, err := filesystem.NewBucket("/tmp")
 	if err != nil {
 		slog.Error("Failed to create new bucket", "error", err)
+		return
 	}
+
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 	db, _ := slatedb.Open(ctx, "testDB", bucket)
